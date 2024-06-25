@@ -348,9 +348,9 @@ always = Always resume"
 
 (defcustom org-caldav-oauth2-providers
   '((google "https://accounts.google.com/o/oauth2/v2/auth"
-	    "https://www.googleapis.com/oauth2/v4/token"
-	    "https://www.googleapis.com/auth/calendar"
-	    "https://apidata.googleusercontent.com/caldav/v2/%s/events"))
+        "https://www.googleapis.com/oauth2/v4/token"
+        "https://www.googleapis.com/auth/calendar"
+        "https://apidata.googleusercontent.com/caldav/v2/%s/events"))
   "List of providers that need OAuth2.  Each must be of the form
 
     IDENTIFIER AUTH-URL TOKEN-URL RESOURCE-URL CALENDAR-URL
@@ -484,7 +484,7 @@ To be removed when emacs dependency reaches >=27.1."
 	(mapcar
 	 (lambda (event)
 	   (when (eq (car (last event)) status)
-	     event))
+         event))
 	 org-caldav-event-list)))
 
 ;; Since not being able to access an URL via DAV is the most reported
@@ -500,7 +500,7 @@ Report an error with further details if that is not the case."
 	(error "Not data received for URL %s (maybe TLS problem)." url))
       (goto-char (point-min))
       (when (not (re-search-forward "^HTTP[^ ]* \\([0-9]+ .*\\)$"
-				    (line-end-position) t))
+                    (line-end-position) t))
 	(switch-to-buffer buffer)
 	(error "No valid HTTP response from URL %s." url))
       (let ((response (match-string 1)))
@@ -526,7 +526,7 @@ configured correctly, and throw an user error otherwise."
     (user-error (concat "Oauth2 library is missing "
 			"(install from GNU ELPA)")))
   (when (or (null org-caldav-oauth2-client-id)
-	    (null org-caldav-oauth2-client-secret))
+        (null org-caldav-oauth2-client-secret))
     (user-error (concat "You need to set oauth2 client ID and secret "
 			"for OAuth2 authentication"))))
 
@@ -539,21 +539,21 @@ configured correctly, and throw an user error otherwise."
     (if cached-token
 	(cdr cached-token)
       (let* ((ids (assoc provider org-caldav-oauth2-providers))
-	     (token (oauth2-auth-and-store (nth 1 ids) (nth 2 ids) (nth 3 ids)
+         (token (oauth2-auth-and-store (nth 1 ids) (nth 2 ids) (nth 3 ids)
 					   org-caldav-oauth2-client-id
 					   org-caldav-oauth2-client-secret)))
 	(when (null token)
 	  (user-error "OAuth2 authentication failed"))
 	(setq org-caldav-oauth2-tokens
-	      (append org-caldav-oauth2-tokens
-		      (list (cons (concat (symbol-name provider) "__" calendar-id)
+          (append org-caldav-oauth2-tokens
+              (list (cons (concat (symbol-name provider) "__" calendar-id)
 				  token))))
 	token))))
 
 (defun org-caldav-url-retrieve-synchronously (url &optional
-					      request-method
-					      request-data
-					      extra-headers)
+                          request-method
+                          request-data
+                          extra-headers)
   "Retrieve URL with REQUEST-METHOD, REQUEST-DATA and EXTRA-HEADERS.
 This will switch to OAuth2 if necessary."
   (if (org-caldav-use-oauth2)
@@ -578,15 +578,15 @@ default namespace."
 	  (replace-match "xmlns:DAV=\"DAV:\"" nil nil nil 1)
 	  (goto-char (match-beginning 0))
 	  (while (re-search-forward "</?" nil t)
-	    (insert "DAV:")))))))
+        (insert "DAV:")))))))
 
 (defun org-caldav-url-dav-get-properties (url property)
   "Retrieve PROPERTY from URL.
 Output is the same as `url-dav-get-properties'.  This switches to
 OAuth2 if necessary."
   (let ((request-data (concat "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n"
-			      "<DAV:propfind xmlns:DAV='DAV:'>\n<DAV:prop>"
-			      "<DAV:" property "/></DAV:prop></DAV:propfind>\n"))
+                  "<DAV:propfind xmlns:DAV='DAV:'>\n<DAV:prop>"
+                  "<DAV:" property "/></DAV:prop></DAV:propfind>\n"))
 	(extra '(("Depth" . "1") ("Content-type" . "text/xml"))))
     (let ((resultbuf (org-caldav-url-retrieve-synchronously
                       url "PROPFIND" request-data extra))
@@ -600,13 +600,13 @@ OAuth2 if necessary."
       (with-current-buffer resultbuf
 	(goto-char (point-min))
 	(when (not (re-search-forward "^HTTP[^ ]* \\([0-9]+ .*\\)$"
-				      (line-end-position) t))
+                      (line-end-position) t))
 	  (switch-to-buffer resultbuf)
 	  (error "No valid HTTP response from URL %s." url))
 	(let ((response (match-string 1)))
 	  (when (not (string-match "2[0-9][0-9].*" response))
-	    (switch-to-buffer resultbuf)
-	    (error "Error while doing PROPFIND for '%s' at URL %s: %s" property url response))))
+        (switch-to-buffer resultbuf)
+        (error "Error while doing PROPFIND for '%s' at URL %s: %s" property url response))))
       (org-caldav-namespace-bug-workaround resultbuf)
       (url-dav-process-response resultbuf url))))
 
@@ -614,7 +614,7 @@ OAuth2 if necessary."
   "Check connection by doing a PROPFIND on CalDAV URL.
 Also sets `org-caldav-empty-calendar' if calendar is empty."
   (org-caldav-debug-print 1 (format "Check connection for %s."
-				    (org-caldav-events-url)))
+                    (org-caldav-events-url)))
   (org-caldav-check-dav (org-caldav-events-url))
   (let* ((output (org-caldav-url-dav-get-properties
 		  (org-caldav-events-url) "resourcetype"))
@@ -642,7 +642,7 @@ Also sets `org-caldav-empty-calendar' if calendar is empty."
   (let (prop files)
     (while (setq prop (pop properties))
       (let ((url (car prop))
-	    (etag (plist-get (cdr prop) 'DAV:getetag)))
+        (etag (plist-get (cdr prop) 'DAV:getetag)))
       (if (string-match (concat ".*/\\(.+\\)\\" org-caldav-uuid-extension "/?$") url)
 	  (setq url (match-string 1 url))
 	(setq url nil))
@@ -665,20 +665,20 @@ Return list with elements (uid . etag)."
 	;; Get all ics files and etags you can find in there.
 	(org-caldav-get-icsfiles-etags-from-properties output))
        ((or (null output)
-	    (zerop (length output)))
+        (zerop (length output)))
 	;; This is definitely an error.
 	(error "Error while getting eventlist from %s." (org-caldav-events-url)))
        ((and (= (length output) 1)
-	     (stringp (car-safe (car output))))
+         (stringp (car-safe (car output))))
 	(let ((status (plist-get (cdar output) 'DAV:status)))
 	  (if (eq status 200)
-	      ;; This is an empty directory
-	      'empty
-	    (if status
+          ;; This is an empty directory
+          'empty
+        (if status
 		(error "Error while getting eventlist from %s. Got status code: %d."
-		       (org-caldav-events-url) status)
-	      (error "Error while getting eventlist from %s."
-		     (org-caldav-events-url))))))))))
+               (org-caldav-events-url) status)
+          (error "Error while getting eventlist from %s."
+             (org-caldav-events-url))))))))))
 
 (defun org-caldav-get-event (uid &optional with-headers)
   "Get event with UID from calendar.
@@ -696,21 +696,21 @@ If retrieve fails, do `org-caldav-retry-attempts' retries."
 	   (concat (org-caldav-events-url) (url-hexify-string uid) org-caldav-uuid-extension))
 	(goto-char (point-min))
 	(if (looking-at "HTTP.*2[0-9][0-9]")
-	    (setq eventbuffer (current-buffer))
+        (setq eventbuffer (current-buffer))
 	  ;; There was an error retrieving the event
 	  (setq errormessage (buffer-substring (point-min) (line-end-position)))
 	  (setq counter (1+ counter))
 	  (org-caldav-debug-print
 	   1 (format "(Try %d) Error when trying to retrieve UID %s: %s"
-		     counter uid errormessage)))))
+             counter uid errormessage)))))
     (unless eventbuffer
       ;; Give up
       (error "Failed to retrieve UID %s after %d tries with error %s"
-	     uid org-caldav-retry-attempts errormessage))
+         uid org-caldav-retry-attempts errormessage))
     (with-current-buffer eventbuffer
       (unless (search-forward "BEGIN:VCALENDAR" nil t)
 	(error "Failed to find calendar entry for UID %s (see buffer %s)"
-	       uid (buffer-name eventbuffer)))
+           uid (buffer-name eventbuffer)))
       (beginning-of-line)
       (unless with-headers
 	(delete-region (point-min) (point)))
@@ -722,7 +722,7 @@ If retrieve fails, do `org-caldav-retry-attempts' retries."
 	(while (re-search-forward "^ " nil t)
 	  (delete-char -2)))
       (org-caldav-debug-print 2 (format "Content of event UID %s: " uid)
-			      (buffer-string)))
+                  (buffer-string)))
     eventbuffer))
 
 (defun org-caldav-convert-buffer-to-crlf ()
@@ -786,15 +786,15 @@ so you don't do it by accident."
 		(not (y-or-n-p "This will delete EVERYTHING in your calendar. \
 Are you really sure? ")))
       (let ((events (org-caldav-get-event-etag-list))
-	    (counter 0)
-	    (url-show-status nil))
+        (counter 0)
+        (url-show-status nil))
 	(dolist (cur events)
 	  (setq counter (1+ counter))
 	  (message "Deleting event %d of %d" counter (length events))
 	  (org-caldav-delete-event (car cur)))
 	(setq org-caldav-empty-calendar t))
       (when (file-exists-p
-	     (org-caldav-sync-state-filename org-caldav-calendar-id))
+         (org-caldav-sync-state-filename org-caldav-calendar-id))
 	(delete-file (org-caldav-sync-state-filename org-caldav-calendar-id)))
       (setq org-caldav-event-list nil)
       (setq org-caldav-sync-result nil)
@@ -804,12 +804,12 @@ Are you really sure? ")))
   "Return URL for events."
   (let* ((url
 	  (if (org-caldav-use-oauth2)
-	      (nth 4 (assoc org-caldav-url org-caldav-oauth2-providers))
-	    org-caldav-url))
+          (nth 4 (assoc org-caldav-url org-caldav-oauth2-providers))
+        org-caldav-url))
 	 (eventsurl
 	  (if (string-match ".*%s.*" url)
-	      (format url org-caldav-calendar-id)
-	    (concat url "/" org-caldav-calendar-id "/"))))
+          (format url org-caldav-calendar-id)
+        (concat url "/" org-caldav-calendar-id "/"))))
     (if (string-match ".*/$" eventsurl)
 	eventsurl
       (concat eventsurl "/"))))
@@ -821,9 +821,9 @@ Are you really sure? ")))
     (goto-char (point-min))
     (while (org-caldav-narrow-next-event)
       (let* ((uid (org-caldav-rewrite-uid-in-event))
-	     (md5 (unless (string-match "^orgsexp-" uid)
-		    (org-caldav-generate-md5-for-org-entry uid)))
-	     (event (org-caldav-search-event uid)))
+         (md5 (unless (string-match "^orgsexp-" uid)
+            (org-caldav-generate-md5-for-org-entry uid)))
+         (event (org-caldav-search-event uid)))
 	(cond
 	 ((null event)
 	  ;; Event does not yet exist in DB, so add it.
@@ -844,7 +844,7 @@ Are you really sure? ")))
 	  (org-caldav-debug-print 1
 	   (format "Org UID %s: Error. Double entry." uid))
 	  (push (list org-caldav-calendar-id
-		      uid 'new-in-org 'error:double-entry)
+              uid 'new-in-org 'error:double-entry)
 		org-caldav-sync-result))
 	 (t
 	  (org-caldav-debug-print 1
@@ -873,7 +873,7 @@ Are you really sure? ")))
        ((eq (org-caldav-event-status dbentry) 'ignored)
 	(org-caldav-debug-print 1 (format "Cal UID %s: Ignored." (car cur))))
        ((or (eq (org-caldav-event-status dbentry) 'changed-in-org)
-	    (eq (org-caldav-event-status dbentry) 'deleted-in-org))
+        (eq (org-caldav-event-status dbentry) 'deleted-in-org))
 	(org-caldav-debug-print 1
 	 (format "Cal UID %s: Ignoring (Org always wins)." (car cur))))
        ((null (org-caldav-event-etag dbentry))
@@ -914,8 +914,8 @@ Are you really sure? ")))
     (with-current-buffer (marker-buffer marker)
       (goto-char (marker-position marker))
       (md5 (buffer-substring-no-properties
-	    (org-entry-beginning-position)
-	    (org-entry-end-position))))))
+        (org-entry-beginning-position)
+        (org-entry-end-position))))))
 
 (defun org-caldav-var-for-key (key)
   "Return associated global org-caldav variable for key KEY."
@@ -945,10 +945,10 @@ Are you really sure? ")))
 This adds the inbox if necessary."
   (let ((inbox (org-caldav-inbox-file org-caldav-inbox)))
     (append org-caldav-files
-	    (when (and inbox
-		       (org-caldav-sync-do-org->cal)
-		       (not (member inbox org-caldav-files)))
-	      (list inbox)))))
+        (when (and inbox
+               (org-caldav-sync-do-org->cal)
+               (not (member inbox org-caldav-files)))
+          (list inbox)))))
 
 (defun org-caldav-sync-calendar (&optional calendar resume)
   "Sync one calendar, optionally provided through plist CALENDAR.
@@ -961,13 +961,13 @@ If RESUME is non-nil, try to resume."
     ;; Extrace keys and values from 'calendar' for progv binding.
     (dolist (i (number-sequence 0 (1- (length calendar)) 2))
       (setq calkeys (append calkeys (list (nth i calendar)))
-	    calvalues (append calvalues (list (nth (1+ i) calendar)))))
+        calvalues (append calvalues (list (nth (1+ i) calendar)))))
     (cl-progv (mapcar 'org-caldav-var-for-key calkeys) calvalues
       (when (org-caldav-sync-do-org->cal)
 	(let ((files-for-sync (org-caldav-get-org-files-for-sync)))
 	  (dolist (filename files-for-sync)
-	    (when (not (file-exists-p filename))
-	      (if (yes-or-no-p (format "File %s does not exist, create it?" filename))
+        (when (not (file-exists-p filename))
+          (if (yes-or-no-p (format "File %s does not exist, create it?" filename))
 		  (write-region "" nil filename)
 		(user-error "File %s does not exist" filename))))
 	  ;; prevent https://github.com/dengste/org-caldav/issues/230
@@ -979,37 +979,37 @@ If RESUME is non-nil, try to resume."
 	;; Retrieve token
 	(org-caldav-retrieve-oauth2-token org-caldav-url org-caldav-calendar-id))
       (let ((numretry 0)
-	    success)
+        success)
 	(while (null success)
 	  (condition-case err
-	      (progn
+          (progn
 		(org-caldav-check-connection)
 		(setq success t))
-	    (error
-	     (if (= numretry (1- org-caldav-retry-attempts))
+        (error
+         (if (= numretry (1- org-caldav-retry-attempts))
 		 (org-caldav-check-connection)
-	       (org-caldav-debug-print
+           (org-caldav-debug-print
 		1 "Got error while checking connection (will try again):" err)
-	       (cl-incf numretry))))))
+           (cl-incf numretry))))))
       (unless resume
 	(setq org-caldav-event-list nil
-	      org-caldav-previous-files nil)
+          org-caldav-previous-files nil)
 	(org-caldav-load-sync-state)
 	;; Check if org files were removed.
 	(when org-caldav-previous-files
 	  (let ((missing (cl-set-difference org-caldav-previous-files
-					    org-caldav-files
-					    :test #'string=)))
-	    (when (and missing
-		       (not (yes-or-no-p
-			     (concat "WARNING: Previously synced file(s) are missing: "
-				     (mapconcat 'identity missing ",")
-				     "%s. Are you sure you want to sync? "))))
-	      (user-error "Sync aborted"))))
+                        org-caldav-files
+                        :test #'string=)))
+        (when (and missing
+               (not (yes-or-no-p
+                 (concat "WARNING: Previously synced file(s) are missing: "
+                     (mapconcat 'identity missing ",")
+                     "%s. Are you sure you want to sync? "))))
+          (user-error "Sync aborted"))))
 	;; Remove status in event list
 	(dolist (cur org-caldav-event-list)
 	  (unless (eq (org-caldav-event-status cur) 'ignored)
-	    (org-caldav-event-set-status cur nil)))
+        (org-caldav-event-set-status cur nil)))
 	;; Update events for the org->cal direction
 	(when (org-caldav-sync-do-org->cal)
 	  ;; Export Org to icalendar format
@@ -1035,15 +1035,15 @@ If RESUME is non-nil, try to resume."
   "Sync Org with calendar."
   (interactive)
   (unless (or (> emacs-major-version 24)
-	      (and (= emacs-major-version 24)
+          (and (= emacs-major-version 24)
 		   (> emacs-minor-version 2)))
     (user-error "You have to use at least Emacs 24.3"))
   (org-caldav-debug-print 1 "========== Started sync.")
   (if (and org-caldav-event-list
 	   (not (eq org-caldav-resume-aborted 'never))
 	   (or (eq org-caldav-resume-aborted 'always)
-	       (and (eq org-caldav-resume-aborted 'ask)
-	            (y-or-n-p "Last sync seems to have been aborted. \
+           (and (eq org-caldav-resume-aborted 'ask)
+                (y-or-n-p "Last sync seems to have been aborted. \
 Should I try to resume? "))))
       (org-caldav-sync-calendar org-caldav-previous-calendar t)
     (setq org-caldav-sync-result nil)
@@ -1106,33 +1106,33 @@ ICSBUF is the buffer containing the exported iCalendar file."
       (dolist (cur events)
 	(let ((etag (assoc (car cur) event-etag)))
 	  (when (and (not (eq (org-caldav-event-status cur) 'error))
-		     etag)
-	    (org-caldav-event-set-etag cur (cdr etag))
-	    (push (list org-caldav-calendar-id (car cur)
+             etag)
+        (org-caldav-event-set-etag cur (cdr etag))
+        (push (list org-caldav-calendar-id (car cur)
 			(org-caldav-event-status cur) 'org->cal)
 		  org-caldav-sync-result)))))
     ;; Remove events that were deleted in org
     (unless (eq org-caldav-delete-calendar-entries 'never)
       (let ((events (org-caldav-filter-events 'deleted-in-org))
-	    (url-show-status nil)
-	    (counter 0))
+        (url-show-status nil)
+        (counter 0))
 	(dolist (cur events)
 	  (setq counter (1+ counter))
 	  (when (or (eq org-caldav-delete-calendar-entries 'always)
-		    (y-or-n-p (format "Delete event '%s' from external calendar?"
-				       (org-caldav-get-calendar-summary-from-uid
+            (y-or-n-p (format "Delete event '%s' from external calendar?"
+                       (org-caldav-get-calendar-summary-from-uid
 					(car cur)))))
-	    (message "Deleting event %d from %d" counter (length events))
-	    (org-caldav-delete-event (car cur))
-	    (push (list org-caldav-calendar-id (car cur)
+        (message "Deleting event %d from %d" counter (length events))
+        (org-caldav-delete-event (car cur))
+        (push (list org-caldav-calendar-id (car cur)
 			'deleted-in-org 'removed-from-cal)
 		  org-caldav-sync-result)
-	    (setq org-caldav-event-list
+        (setq org-caldav-event-list
 		  (delete cur org-caldav-event-list))))))
     ;; Remove events that could not be put
     (dolist (cur (org-caldav-filter-events 'error))
       (setq org-caldav-event-list
-	    (delete cur org-caldav-event-list)))))
+        (delete cur org-caldav-event-list)))))
 
 (defun org-caldav-set-sequence-number (event event-etag)
   "Set sequence number in ics and in eventdb for EVENT.
@@ -1154,13 +1154,13 @@ The ics must be in the current buffer."
 	  (setq seq 0)) ;; incremented below
 	(unless seq
 	  (with-current-buffer (org-caldav-get-event (car event))
-	    (goto-char (point-min))
-	    (if (re-search-forward "^SEQUENCE:\\s-*\\([0-9]+\\)" nil t)
+        (goto-char (point-min))
+        (if (re-search-forward "^SEQUENCE:\\s-*\\([0-9]+\\)" nil t)
 		(progn
 		  (setq seq (string-to-number (match-string 1)))
 		  (org-caldav-debug-print 1 (format "UID %s: Got sequence number %d" (car event) seq)))
-	      (org-caldav-debug-print 1 (format "UID %s: Event does not have sequence number, start with 1." (car event)))
-	      (setq seq 0))))) ;; incremented below
+          (org-caldav-debug-print 1 (format "UID %s: Event does not have sequence number, start with 1." (car event)))
+          (setq seq 0))))) ;; incremented below
       (when seq
         (setq seq (1+ seq))
         (goto-char (point-min))
@@ -1328,7 +1328,7 @@ returned as a cons (POINT . LEVEL)."
            ;; FIXME: org-link-search-inhibit-query removed in Org 9.3,
            ;; so byte-compile gives unused lexical variable warning
 	   (let ((org-link-search-inhibit-query t))
-	     (org-link-search (concat "*" (nth 2 inbox)) nil t)
+         (org-link-search (concat "*" (nth 2 inbox)) nil t)
              (org-caldav--point-level-helper)))
           ((eq (car inbox) 'file+olp)
 	   (goto-char (org-find-olp (cdr inbox)))
@@ -1339,9 +1339,9 @@ returned as a cons (POINT . LEVEL)."
                (goto-char (org-find-olp (cdr inbox))))
              (funcall
               (pcase org-caldav-datetree-treetype
-	        (`week #'org-datetree-find-iso-week-create)
-	        (`month #'org-caldav--datetree-find-month-create)
-	        (`day #'org-datetree-find-date-create))
+            (`week #'org-datetree-find-iso-week-create)
+            (`month #'org-caldav--datetree-find-month-create)
+            (`day #'org-datetree-find-date-create))
               (let ((start-d (alist-get 'start-d eventdata-alist)))
                 (if start-d (org-caldav--convert-to-calendar start-d)
                   ;; Use current date for a VTODO without DTSTART
@@ -1396,20 +1396,20 @@ level to add a new child entry."
                                                "^BEGIN:VTODO$" nil t))
                           t))
 	  (when (and is-todo (not org-caldav-sync-todo))
-	    (message "Skipping TODO entry.")
-	    (org-caldav-event-set-status cur 'ignored)
-	    (throw 'next nil))
+        (message "Skipping TODO entry.")
+        (org-caldav-event-set-status cur 'ignored)
+        (throw 'next nil))
           (save-excursion
-	    (when (re-search-forward "^SEQUENCE:\\s-*\\([0-9]+\\)" nil t)
-	      (org-caldav-event-set-sequence
-	       cur (string-to-number (match-string 1)))))
+        (when (re-search-forward "^SEQUENCE:\\s-*\\([0-9]+\\)" nil t)
+          (org-caldav-event-set-sequence
+           cur (string-to-number (match-string 1)))))
 	  (setq eventdata-alist (org-caldav-convert-event-or-todo--from-buffer is-todo)))
 	(cond
 	 ((eq (org-caldav-event-status cur) 'new-in-cal)
 	  ;; This is a new event.
 	  (condition-case nil
-	      (with-current-buffer (find-file-noselect
-				    (org-caldav-inbox-file org-caldav-inbox))
+          (with-current-buffer (find-file-noselect
+                    (org-caldav-inbox-file org-caldav-inbox))
 		(let ((point-and-level (org-caldav-inbox-point-and-level
                                         org-caldav-inbox eventdata-alist)))
 		  (org-caldav-debug-print
@@ -1420,17 +1420,17 @@ level to add a new child entry."
                            `((uid . ,uid)
                              (level . ,(cdr point-and-level))))))
 		(push (list org-caldav-calendar-id uid
-			    (org-caldav-event-status cur) 'cal->org)
-		      org-caldav-sync-result)
+                (org-caldav-event-status cur) 'cal->org)
+              org-caldav-sync-result)
 		(setq buf (current-buffer))
                 (when org-caldav-save-buffers (save-buffer)))
-	    (error
-	     ;; inbox file/headline could not be found
-	     (org-caldav-event-set-status cur 'error)
-	     (push (list org-caldav-calendar-id uid
+        (error
+         ;; inbox file/headline could not be found
+         (org-caldav-event-set-status cur 'error)
+         (push (list org-caldav-calendar-id uid
 			 (org-caldav-event-status cur) 'error:inbox-notfound)
 		   org-caldav-sync-result)
-	     (throw 'next nil))))
+         (throw 'next nil))))
 	 ((string-match "^orgsexp-" uid)
 	  ;; This was generated by a org-sexp, we cannot sync it this way.
 	  (org-caldav-debug-print
@@ -1438,7 +1438,7 @@ level to add a new child entry."
 which can only be synced to calendar. Ignoring." uid))
 	  (org-caldav-event-set-status cur 'synced)
 	  (push (list org-caldav-calendar-id uid
-		      (org-caldav-event-status cur) 'error:changed-orgsexp)
+              (org-caldav-event-status cur) 'error:changed-orgsexp)
 		org-caldav-sync-result)
 	  (throw 'next nil))
 	 (t
@@ -1447,20 +1447,20 @@ which can only be synced to calendar. Ignoring." uid))
 	   1 (format "Event UID %s: Changed in Cal --> Org" uid))
 	  (let-alist (append eventdata-alist
                              `((marker . ,(org-id-find (car cur) t))))
-	    (when (null .marker)
-	      (error "Could not find UID %s." (car cur)))
-	    (with-current-buffer (marker-buffer .marker)
-	      (goto-char (marker-position .marker))
-	      (when org-caldav-backup-file
+        (when (null .marker)
+          (error "Could not find UID %s." (car cur)))
+        (with-current-buffer (marker-buffer .marker)
+          (goto-char (marker-position .marker))
+          (when org-caldav-backup-file
 		(org-caldav-backup-item))
-	      ;; See what we should sync.
-	      (when (or (eq org-caldav-sync-changes-to-org 'title-only)
+          ;; See what we should sync.
+          (when (or (eq org-caldav-sync-changes-to-org 'title-only)
 			(eq org-caldav-sync-changes-to-org 'title-and-timestamp))
 		;; Sync title
 		(org-caldav-change-heading .summary)
                 (if (not is-todo)
                     ;; Sync location
-		    (org-caldav-change-location .location)
+            (org-caldav-change-location .location)
                   ;; Sync priority
                   (let* ((nprio (string-to-number (or .priority "0")))
                          (r nil)
@@ -1474,7 +1474,7 @@ which can only be synced to calendar. Ignoring." uid))
                              (string-to-number .percent-complete)))
                   ;; Sync categories
                   (org-caldav-set-org-tags .categories)))
-	      (when (or (eq org-caldav-sync-changes-to-org 'timestamp-only)
+          (when (or (eq org-caldav-sync-changes-to-org 'timestamp-only)
 			(eq org-caldav-sync-changes-to-org 'title-and-timestamp))
                 (if (not is-todo)
                     ;; Sync timestamp; also sets timesync to 'orgsexp
@@ -1482,7 +1482,7 @@ which can only be synced to calendar. Ignoring." uid))
                     (progn
                       (org-narrow-to-subtree)
                       (goto-char (point-min))
-		      (setq timesync
+              (setq timesync
                             (if (search-forward "<%%(" nil t)
                                 'orgsexp
                               ;; org-caldav-create-time-range can mess
@@ -1508,7 +1508,7 @@ which can only be synced to calendar. Ignoring." uid))
                   (when .completed-d (org-add-planning-info
                                       'closed (org-caldav-convert-to-org-time
                                                .completed-d .completed-t)))))
-	      (when (eq org-caldav-sync-changes-to-org 'all)
+          (when (eq org-caldav-sync-changes-to-org 'all)
 		;; Sync everything, so first remove the old one.
 		(let ((level (org-current-level)))
 		  (delete-region (org-entry-beginning-position)
@@ -1516,37 +1516,37 @@ which can only be synced to calendar. Ignoring." uid))
 		  (org-caldav-insert-org-event-or-todo
 		   (append eventdata-alist `((uid . ,uid)
                                              (level . ,level))))))
-	      (setq buf (current-buffer))
-	      (push (list org-caldav-calendar-id uid
+          (setq buf (current-buffer))
+          (push (list org-caldav-calendar-id uid
 			  (org-caldav-event-status cur)
 			  (if (eq timesync 'orgsexp)
-			      'error:changed-orgsexp 'cal->org))
-		    org-caldav-sync-result)
+                  'error:changed-orgsexp 'cal->org))
+            org-caldav-sync-result)
               (when org-caldav-save-buffers (save-buffer))))))
 	;; Update the event database.
 	(org-caldav-event-set-status cur 'synced)
 	(with-current-buffer buf
 	  (org-caldav-event-set-md5
 	   cur (md5 (buffer-substring-no-properties
-		     (org-entry-beginning-position)
-		     (org-entry-end-position))))))))
+             (org-entry-beginning-position)
+             (org-entry-end-position))))))))
   ;; (Maybe) delete entries which were deleted in calendar.
   (unless (eq org-caldav-delete-org-entries 'never)
     (dolist (cur (org-caldav-filter-events 'deleted-in-cal))
       (org-id-goto (car cur))
       (when (or (eq org-caldav-delete-org-entries 'always)
 		(and (eq org-caldav-delete-org-entries 'ask)
-		     (y-or-n-p "Delete this entry locally? ")))
+             (y-or-n-p "Delete this entry locally? ")))
 	(delete-region (org-entry-beginning-position)
-		       (org-entry-end-position))
+               (org-entry-end-position))
         (when org-caldav-save-buffers (save-buffer))
 	(setq org-caldav-event-list
-	      (delete cur org-caldav-event-list))
+          (delete cur org-caldav-event-list))
 	(org-caldav-debug-print 1
 	 (format "Event UID %s: Deleted from Org" (car cur)))
 	(push (list org-caldav-calendar-id (car cur)
-		    'deleted-in-cal 'removed-from-org)
-	      org-caldav-sync-result)))))
+            'deleted-in-cal 'removed-from-org)
+          org-caldav-sync-result)))))
 
 (defun org-caldav--org-show-subtree ()
   "Helper function for compatibility.
@@ -1562,7 +1562,7 @@ To be removed when org dependency reaches >=9.6."
   (goto-char (point-min))
   (org-caldav--org-show-subtree)
   (when (and (re-search-forward org-complex-heading-regexp nil t)
-	     (match-string 4))
+         (match-string 4))
     (let ((start (match-beginning 4))
 	  (end (match-end 4)))
       ;; Check if a timestring is in the heading
@@ -1572,8 +1572,8 @@ To be removed when org dependency reaches >=9.6."
 	  ;; Check if timestring is at the beginning or end of heading
 	  (if (< (- end (match-end 0))
 		 (- (match-beginning 0) start))
-	      (setq end (1- (match-beginning 0)))
-	    (setq start (1+ (match-end 0))))))
+          (setq end (1- (match-beginning 0)))
+        (setq start (1+ (match-end 0))))))
       (delete-region start end)
       (goto-char start)
       (insert newheading)))
@@ -1686,7 +1686,7 @@ match org-caldav-skip-conditions."
 Returns buffer containing the ICS file."
   (let ((icalendar-file
 	 (if (featurep 'ox-icalendar)
-	     'org-icalendar-combined-agenda-file
+         'org-icalendar-combined-agenda-file
 	   'org-combined-agenda-icalendar-file))
 	(orgfiles (org-caldav-get-org-files-for-sync))
 	(org-export-select-tags org-caldav-select-tags)
@@ -1718,11 +1718,11 @@ Returns buffer containing the ICS file."
     (org-caldav-prepare-scheduled-deadline-timestamps orgfiles)
     (set icalendar-file (make-temp-file "org-caldav-"))
     (org-caldav-debug-print 1 (format "Generating ICS file %s."
-				      (symbol-value icalendar-file)))
+                      (symbol-value icalendar-file)))
     ;; compat: use org-export-before-parsing-functions after org >=9.6
     (org-caldav--suppress-obsolete-warning org-export-before-parsing-hook
       (let ((org-export-before-parsing-hook
-	     (append org-export-before-parsing-hook
+         (append org-export-before-parsing-hook
                      (when (or org-caldav-skip-conditions
                                org-caldav-days-in-past)
                        '(org-caldav-skip-function))
@@ -1738,7 +1738,7 @@ Returns buffer containing the ICS file."
       (let ((case-fold-search nil)
             (uid (match-string 1)))
 	(while (progn (forward-line)
-		      (looking-at " \\(.+\\)\\s-*$"))
+              (looking-at " \\(.+\\)\\s-*$"))
 	  (setq uid (concat uid (match-string 1))))
 	(while (string-match "\\s-+" uid)
 	  (setq uid (replace-match "" nil nil uid)))
@@ -1761,7 +1761,7 @@ Returns nil if there are no more events."
 	(widen)	nil)
     (beginning-of-line)
     (narrow-to-region (point)
-		      (save-excursion
+              (save-excursion
                         (re-search-forward "END:V[EVENT|TODO]")
 			(forward-line 1)
 			(point)))
@@ -1774,10 +1774,10 @@ Returns nil if there are no more events."
       (error "Cannot find event under point."))
     (beginning-of-line))
   (narrow-to-region (point)
-		    (save-excursion
+            (save-excursion
                       (re-search-forward "END:V[EVENT|TODO]")
-		      (forward-line 1)
-		      (point))))
+              (forward-line 1)
+              (point))))
 
 (defun org-caldav-rewrite-uid-in-event ()
   "Rewrite UID in current buffer.
@@ -1801,18 +1801,18 @@ is no UID to rewrite. Returns the UID."
   "Print OBJECTS into debug buffer with debug level LEVEL.
 Do nothing if LEVEL is larger than `org-caldav-debug-level'."
   (unless (or (null org-caldav-debug-level)
-	      (> level org-caldav-debug-level))
+          (> level org-caldav-debug-level))
     (with-current-buffer (get-buffer-create org-caldav-debug-buffer)
       (dolist (cur objects)
 	(if (stringp cur)
-	    (insert cur)
+        (insert cur)
 	  (prin1 cur (current-buffer)))
 	(insert "\n")))))
 
 (defun org-caldav-buffer-narrowed-p ()
   "Return non-nil if current buffer is narrowed."
   (> (buffer-size) (- (point-max)
-		      (point-min))))
+              (point-min))))
 
 (defun org-caldav--insert-description (description)
   (when (> (length description) 0)
@@ -1927,7 +1927,7 @@ Sets the block's tags, and return its MD5."
      ((string= "DL" e-type) (insert "DEADLINE: ")))
     (org-caldav-insert-org-time-stamp start-d start-t)
     (if (and end-d
-	     (not (equal end-d start-d)))
+         (not (equal end-d start-d)))
 	(progn
 	  (insert "--")
 	  (org-caldav-insert-org-time-stamp end-d end-t))
@@ -1970,14 +1970,14 @@ DATE is given as european date \"DD MM YYYY\"."
 See also `org-caldav-save-directory'."
   (with-temp-buffer
     (insert ";; This is the sync state from org-caldav\n;; calendar-id: "
-	    org-caldav-calendar-id "\n;; Do not modify this file.\n\n")
+        org-caldav-calendar-id "\n;; Do not modify this file.\n\n")
     (insert "(setq org-caldav-event-list\n'")
     (let ((print-length nil)
 	  (print-level nil))
       (prin1 (delq nil
 		   (mapcar (lambda (ev) (unless (eq (org-caldav-event-status ev) 'error) ev))
 			   org-caldav-event-list))
-	     (current-buffer)))
+         (current-buffer)))
     (insert ")\n")
     ;; This is just cosmetics.
     (goto-char (point-min))
@@ -1987,7 +1987,7 @@ See also `org-caldav-save-directory'."
     (insert "(setq org-caldav-previous-files '"
             (let ((print-length nil)
                   (print-level nil))
-	            (prin1-to-string org-caldav-files))
+                (prin1-to-string org-caldav-files))
       ")\n")
     ;; Save it.
     (write-region (point-min) (point-max)
@@ -2043,8 +2043,8 @@ If COMPLEMENT is non-nil, return all item without errors."
 	(mapcar
 	 (lambda (x)
 	   (if (string-match "^error" (symbol-name (car (last x))))
-	       (unless complement x)
-	     (when complement x)))
+           (unless complement x)
+         (when complement x)))
 	 org-caldav-sync-result)))
 
 (defun org-caldav-sync-result-print-entries (entries)
@@ -2058,7 +2058,7 @@ If COMPLEMENT is non-nil, return all item without errors."
 	(let ((start (point)))
 	  (insert (nth 1 entry))
 	  (unless deleted
-	    (make-button start (point)
+        (make-button start (point)
              'action (lambda (&rest _ignore)
                        (org-caldav-goto-uid))
              'follow-link t)))
@@ -2066,7 +2066,7 @@ If COMPLEMENT is non-nil, return all item without errors."
 		   (not deleted))
 	  (insert "\n   Title: "
 		  (or (org-caldav-get-heading-from-uid (nth 1 entry))
-		      "(no title)")))
+              "(no title)")))
 	(insert "\n   Status: "
 		(symbol-name (nth 2 entry))
 		"  Action: "
@@ -2086,9 +2086,9 @@ If COMPLEMENT is non-nil, return all item without errors."
 	(goto-char (point-min))
 	(org-caldav--org-show-subtree)
 	(prog1
-	    (if (re-search-forward org-complex-heading-regexp nil t)
+        (if (re-search-forward org-complex-heading-regexp nil t)
 		(match-string 4)
-	      "(Could not find heading)")
+          "(Could not find heading)")
 	  (widen))))))
 
 (defun org-caldav-goto-uid ()
@@ -2114,7 +2114,7 @@ If COMPLEMENT is non-nil, return all item without errors."
 If PROPERTY in event E contains has valuetype \"DATE\" instead of
 \"DATE-TIME\", return DEFAULT instead."
   (if (and datetime
-             (not (string= 
+             (not (string=
                    (cadr (icalendar--get-event-property-attributes
                           e property))
                    "DATE")))
@@ -2128,7 +2128,7 @@ puts them in a plist."
   (let* ((dt-prop (icalendar--get-event-property e property))
 	 (dt-zone (icalendar--find-time-zone
 		   (icalendar--get-event-property-attributes
-		    e property)
+            e property)
 		   zone-map))
 	 (dt-dec (icalendar--decode-isodatetime dt-prop nil dt-zone)))
     (list 'event-property dt-prop
@@ -2176,11 +2176,11 @@ which can be fed into `org-caldav-insert-org-event-or-todo'."
             (start-t . ,(plist-get dtstart-plist 'time))
             (dtstart-dec . ,(plist-get dtstart-plist 'decoded))
             (summary . ,(icalendar--convert-string-for-import
-		         (or (icalendar--get-event-property e 'SUMMARY)
-		             "No Title")))
+                 (or (icalendar--get-event-property e 'SUMMARY)
+                     "No Title")))
             (description . ,(icalendar--convert-string-for-import
-		             (or (icalendar--get-event-property e 'DESCRIPTION)
-			         ""))))))
+                     (or (icalendar--get-event-property e 'DESCRIPTION)
+                     ""))))))
     (if is-todo
         (org-caldav-convert-event-or-todo--todo e zone-map eventdata-alist)
       (org-caldav-convert-event-or-todo--event e zone-map eventdata-alist))))
@@ -2194,8 +2194,8 @@ which can be fed into `org-caldav-insert-org-event-or-todo'."
          (dtend-plist (org-caldav--event-date-plist e 'DTEND zone-map))
 	 (dtend-dec (plist-get dtend-plist 'decoded))
 	 (dtend-1-dec (icalendar--decode-isodatetime
-		       (plist-get dtend-plist 'event-property) -1
-		       (plist-get dtend-plist 'zone)))
+               (plist-get dtend-plist 'event-property) -1
+               (plist-get dtend-plist 'zone)))
 	 e-type
 	 (duration (icalendar--get-event-property e 'DURATION)))
     (when (string-match "^\\(?:\\(DL\\|S\\):\s+\\)?\\(.*\\)$" summary)
@@ -2205,13 +2205,13 @@ which can be fed into `org-caldav-insert-org-event-or-todo'."
       (let ((dtend-dec-d (icalendar--add-decoded-times
 			  dtstart-dec
 			  (icalendar--decode-isoduration duration)))
-	    (dtend-1-dec-d (icalendar--add-decoded-times
-			    dtstart-dec
-			    (icalendar--decode-isoduration duration
+        (dtend-1-dec-d (icalendar--add-decoded-times
+                dtstart-dec
+                (icalendar--decode-isoduration duration
 							   t))))
 	(if (and dtend-dec (not (eq dtend-dec dtend-dec-d)))
-	    (message "Inconsistent endtime and duration for %s"
-		     summary))
+        (message "Inconsistent endtime and duration for %s"
+             summary))
 	(setq dtend-dec dtend-dec-d)
 	(setq dtend-1-dec dtend-1-dec-d)))
     (let ((end-t (org-caldav--datetime-to-colontime
@@ -2221,23 +2221,23 @@ which can be fed into `org-caldav-insert-org-event-or-todo'."
 		(end-d
 		 . ,(if end-t
 			(if dtend-dec
-			    (icalendar--datetime-to-diary-date dtend-dec)
+                (icalendar--datetime-to-diary-date dtend-dec)
 			  start-d)
-		      (if dtend-1-dec
+              (if dtend-1-dec
 			  (icalendar--datetime-to-diary-date dtend-1-dec)
 			start-d)))
 		(end-t . ,end-t)
 		(location
 		 . ,(icalendar--convert-string-for-import
-		     (or (icalendar--get-event-property e 'LOCATION) "")))
+             (or (icalendar--get-event-property e 'LOCATION) "")))
 		(end-type . ,e-type))
-	      eventdata-alist))))
+          eventdata-alist))))
 
 (defun org-caldav-convert-event-or-todo--todo (e zone-map eventdata-alist)
   "Helper function of `org-caldav-event-or-todo' to handle VTODO."
   (let* ((dtdue-plist (org-caldav--event-date-plist e 'DUE zone-map))
 	 (dtcomplete-plist (org-caldav--event-date-plist
-			    e 'COMPLETED zone-map))
+                e 'COMPLETED zone-map))
          (percent-complete (icalendar--get-event-property e 'PERCENT-COMPLETE))
          (stat (icalendar--get-event-property e 'STATUS)))
     (unless percent-complete
@@ -2248,17 +2248,17 @@ which can be fed into `org-caldav-insert-org-event-or-todo'."
           ((string= stat "COMPLETED") "100")
           (t "0"))))
     (append `((component-type . todo)
-	      (due-d . ,(plist-get dtdue-plist 'date))
-	      (due-t . ,(plist-get dtdue-plist 'time))
-	      (priority . ,(icalendar--get-event-property e 'PRIORITY))
+          (due-d . ,(plist-get dtdue-plist 'date))
+          (due-t . ,(plist-get dtdue-plist 'time))
+          (priority . ,(icalendar--get-event-property e 'PRIORITY))
               (percent-complete ., percent-complete)
-	      (status . ,stat)
-	      (completed-d . ,(plist-get dtcomplete-plist 'date))
-	      (completed-t . ,(plist-get dtcomplete-plist 'time))
+          (status . ,stat)
+          (completed-d . ,(plist-get dtcomplete-plist 'date))
+          (completed-t . ,(plist-get dtcomplete-plist 'time))
               (categories . ,(icalendar--convert-string-for-import
                               (or (icalendar--get-event-property e 'CATEGORIES)
                                   ""))))
-	    eventdata-alist)))
+        eventdata-alist)))
 
 ;; This is adapted from url-dav.el, written by Bill Perry.
 ;; This does more error checking on the headers and retries
@@ -2284,7 +2284,7 @@ This switches to OAuth2 if necessary."
           (setq counter (1+ counter))
 	  (org-caldav-debug-print
 	   1 (format "(Try %d) Error when trying to put URL %s: %s"
-		     counter url errormessage))
+             counter url errormessage))
 	  (kill-buffer))))
     (if buffer
 	(kill-buffer buffer)
