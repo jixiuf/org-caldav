@@ -680,6 +680,17 @@ Return list with elements (uid . etag)."
           (error "Error while getting eventlist from %s."
              (org-caldav-events-url))))))))))
 
+(defun org-caldav-get-calendar-data (xml-string)
+  "Extract the value of C:calendar-data from the given XML string."
+  (let* ((xml (with-temp-buffer
+                (insert xml-string)
+                (xml-parse-region (point-min) (point-max))))
+         (response (car (xml-get-children (car xml) 'D:response)))
+         (propstat (car (xml-get-children response 'D:propstat)))
+         (prop (car (xml-get-children propstat 'D:prop)))
+         (calendar-data (car (xml-node-children (car (xml-get-children prop 'C:calendar-data))))))
+    calendar-data))
+
 (defun org-caldav-get-event (uid &optional with-headers)
   "Get event with UID from calendar.
 Function returns a buffer containing the event, or nil if there's
@@ -688,41 +699,50 @@ If WITH-HEADERS is non-nil, do not delete headers.
 If retrieve fails, do `org-caldav-retry-attempts' retries."
   (org-caldav-debug-print 1 (format "Getting event UID %s." uid))
   (let ((counter 0)
-	eventbuffer errormessage)
+        events-url path-query eventbuffer errormessage)
     (while (and (not eventbuffer)
-		(< counter org-caldav-retry-attempts))
+                (< counter org-caldav-retry-attempts))
+      (setq events-url (org-caldav-events-url))
+      (setq path-query (url-path-and-query (url-generic-parse-url events-url)))
       (with-current-buffer
-	  (org-caldav-url-retrieve-synchronously
-	   (concat (org-caldav-events-url) (url-hexify-string uid) org-caldav-uuid-extension))
-	(goto-char (point-min))
-	(if (looking-at "HTTP.*2[0-9][0-9]")
-        (setq eventbuffer (current-buffer))
-	  ;; There was an error retrieving the event
-	  (setq errormessage (buffer-substring (point-min) (line-end-position)))
-	  (setq counter (1+ counter))
-	  (org-caldav-debug-print
-	   1 (format "(Try %d) Error when trying to retrieve UID %s: %s"
-             counter uid errormessage)))))
+          (org-caldav-url-retrieve-synchronously
+           events-url
+           "REPORT"
+           (format "<CAL:calendar-multiget xmlns=\"DAV:\" xmlns:CAL=\"urn:ietf:params:xml:ns:caldav\"><prop><CAL:calendar-data /></prop><href>%s%s%s</href></CAL:calendar-multiget>"
+                   (car path-query) (url-hexify-string uid) org-caldav-uuid-extension))
+        (goto-char (point-min))
+        (if (looking-at "HTTP.*2[0-9][0-9]")
+            (setq eventbuffer (current-buffer))
+          ;; There was an error retrieving the event
+          (setq errormessage (buffer-substring (point-min) (line-end-position)))
+          (setq counter (1+ counter))
+          (org-caldav-debug-print
+           1 (format "(Try %d) Error when trying to retrieve UID %s: %s"
+                     counter uid errormessage)))))
     (unless eventbuffer
       ;; Give up
       (error "Failed to retrieve UID %s after %d tries with error %s"
-         uid org-caldav-retry-attempts errormessage))
+             uid org-caldav-retry-attempts errormessage))
     (with-current-buffer eventbuffer
       (unless (search-forward "BEGIN:VCALENDAR" nil t)
-	(error "Failed to find calendar entry for UID %s (see buffer %s)"
-           uid (buffer-name eventbuffer)))
+        (error "Failed to find calendar entry for UID %s (see buffer %s)"
+               uid (buffer-name eventbuffer)))
       (beginning-of-line)
       (unless with-headers
-	(delete-region (point-min) (point)))
+        (delete-region (point-min) (point)))
+      (let ((buftxt (buffer-string)))
+        (erase-buffer)
+        (insert (org-caldav-get-calendar-data buftxt ))
+        )
       (save-excursion
-	(while (re-search-forward "\^M" nil t)
-	  (replace-match "")))
+        (while (re-search-forward "\^M" nil t)
+          (replace-match "")))
       ;; Join lines because of bug in icalendar parsing.
       (save-excursion
-	(while (re-search-forward "^ " nil t)
-	  (delete-char -2)))
+        (while (re-search-forward "^ " nil t)
+          (delete-char -2)))
       (org-caldav-debug-print 2 (format "Content of event UID %s: " uid)
-                  (buffer-string)))
+                              (buffer-string)))
     eventbuffer))
 
 (defun org-caldav-convert-buffer-to-crlf ()
@@ -2170,6 +2190,7 @@ which can be fed into `org-caldav-insert-org-event-or-todo'."
   "Convert event/todo from icalendar element E.
 If IS-TODO, it is a VTODO, else a VEVENT.  Returns an alist of properties
 which can be fed into `org-caldav-insert-org-event-or-todo'."
+  (print e)
   (let* ((dtstart-plist (org-caldav--event-date-plist e 'DTSTART zone-map))
          (eventdata-alist
           `((start-d . ,(plist-get dtstart-plist 'date))
