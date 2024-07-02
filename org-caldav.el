@@ -77,6 +77,9 @@ authentication with access URIs set in
   "The file extension to add to uuids in webdav requests.
 This is usually .ics, but on some servers (davmail), it is .EML"
   :type 'string)
+(defcustom org-caldav-get-event-by-report nil
+  " use http REPORT get event."
+  :type 'boolean)
 
 (defcustom org-caldav-files '("~/org/appointments.org")
   "List of files which should end up in calendar.
@@ -642,14 +645,16 @@ Also sets `org-caldav-empty-calendar' if calendar is empty."
   (let (prop files)
     (while (setq prop (pop properties))
       (let ((url (car prop))
-        (etag (plist-get (cdr prop) 'DAV:getetag)))
-      (if (string-match (concat ".*/\\(.+\\)\\" org-caldav-uuid-extension "/?$") url)
-	  (setq url (match-string 1 url))
-	(setq url nil))
-      (when (string-match "\"\\(.*\\)\"" etag)
-	(setq etag (match-string 1 etag)))
-      (when (and url etag)
-	(push (cons (url-unhex-string url) etag) files))))
+            (etag (plist-get (cdr prop) 'DAV:getetag)))
+        (if (string-match (concat ".*/\\(.+\\)\\" org-caldav-uuid-extension "/?$") url)
+            (setq url (match-string 1 url))
+          (setq url nil))
+        (when (string-suffix-p "/" url)
+          (setq url nil))
+        (when (string-match "\"\\(.*\\)\"" etag)
+          (setq etag (match-string 1 etag)))
+        (when (and url etag)
+          (push (cons (url-unhex-string url) etag) files))))
     files))
 
 (defun org-caldav-get-event-etag-list ()
@@ -692,6 +697,55 @@ Return list with elements (uid . etag)."
     calendar-data))
 
 (defun org-caldav-get-event (uid &optional with-headers)
+  "Get event with UID from calendar.
+Function returns a buffer containing the event, or nil if there's
+no such event.
+If WITH-HEADERS is non-nil, do not delete headers.
+If retrieve fails, do `org-caldav-retry-attempts' retries."
+  (org-caldav-debug-print 1 (format "Getting event UID %s." uid))
+  (if org-caldav-get-event-by-report
+      (org-caldav-multiget-event uid with-headers)
+    (let ((counter 0)
+          eventbuffer errormessage)
+      (while (and (not eventbuffer)
+                  (< counter org-caldav-retry-attempts))
+        (with-current-buffer
+            (org-caldav-url-retrieve-synchronously
+             (concat (org-caldav-events-url) (url-hexify-string uid) org-caldav-uuid-extension))
+          (goto-char (point-min))
+          (if (looking-at "HTTP.*2[0-9][0-9]")
+              (setq eventbuffer (current-buffer))
+            ;; There was an error retrieving the event
+            (setq errormessage (buffer-substring (point-min) (line-end-position)))
+            (setq counter (1+ counter))
+            (org-caldav-debug-print
+             1 (format "(Try %d) Error when trying to retrieve UID %s: %s"
+                       counter uid errormessage)))))
+      (unless eventbuffer
+        ;; Give up
+        (error "Failed to retrieve UID %s after %d tries with error %s"
+               uid org-caldav-retry-attempts errormessage))
+      (with-current-buffer eventbuffer
+        (unless (search-forward "BEGIN:VCALENDAR" nil t)
+          (error "Failed to find calendar entry for UID %s (see buffer %s)"
+                 uid (buffer-name eventbuffer)))
+        (beginning-of-line)
+        (unless with-headers
+          (delete-region (point-min) (point)))
+        (save-excursion
+          (while (re-search-forward "\^M" nil t)
+            (replace-match "")))
+        ;; Join lines because of bug in icalendar parsing.
+        (save-excursion
+          (while (re-search-forward "^ " nil t)
+            (delete-char -2)))
+        (org-caldav-debug-print 2 (format "Content of event UID %s: " uid)
+                                (buffer-string)))
+      eventbuffer)
+    )
+  )
+
+(defun org-caldav-multiget-event (uid &optional with-headers)
   "Get event with UID from calendar.
 Function returns a buffer containing the event, or nil if there's
 no such event.
@@ -948,17 +1002,19 @@ Are you really sure? ")))
     (:inbox 'org-caldav-inbox)
     (:skip-conditions 'org-caldav-skip-conditions)
     (:sync-direction 'org-caldav-sync-direction)
+    (:uuid-extension 'org-caldav-uuid-extension)
+    (:get-event-by-report 'org-caldav-get-event-by-report)
     (t (intern
 	(concat "org-"
 		(substring (symbol-name key) 1))))))
 
 (defsubst org-caldav-sync-do-cal->org ()
   "True if we have to sync from calendar to org."
-  (member org-caldav-sync-direction '(twoway cal->org)))
+  (member org-caldav-sync-direction '(twoway cal->org "cal->org" "twoway")))
 
 (defsubst org-caldav-sync-do-org->cal ()
   "True if we have to sync from org to calendar."
-  (member org-caldav-sync-direction '(twoway org->cal)))
+  (member org-caldav-sync-direction '(twoway "twoway" "org->cal" org->cal)))
 
 (defun org-caldav-get-org-files-for-sync ()
   "Return list of all org files for syncing.
@@ -980,8 +1036,12 @@ If RESUME is non-nil, try to resume."
   (let (calkeys calvalues)
     ;; Extrace keys and values from 'calendar' for progv binding.
     (dolist (i (number-sequence 0 (1- (length calendar)) 2))
+      (set (org-caldav-var-for-key (nth i calendar)) (nth (1+ i) calendar))
       (setq calkeys (append calkeys (list (nth i calendar)))
-        calvalues (append calvalues (list (nth (1+ i) calendar)))))
+            calvalues (append calvalues (list (nth (1+ i) calendar)))))
+
+    (print calvalues)
+    (print calkeys)
     (cl-progv (mapcar 'org-caldav-var-for-key calkeys) calvalues
       (when (org-caldav-sync-do-org->cal)
 	(let ((files-for-sync (org-caldav-get-org-files-for-sync)))
