@@ -678,7 +678,7 @@ Return list with elements (uid . etag)."
 	(let ((status (plist-get (cdar output) 'DAV:status)))
 	  (if (eq status 200)
           ;; This is an empty directory
-          'empty
+          nil
         (if status
 		(error "Error while getting eventlist from %s. Got status code: %d."
                (org-caldav-events-url) status)
