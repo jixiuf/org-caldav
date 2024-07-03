@@ -904,7 +904,8 @@ Are you really sure? ")))
 	  (org-caldav-debug-print 1
 	   (format "Org UID %s: New" uid))
 	  (org-caldav-add-event uid md5 nil nil 'new-in-org))
-	 ((not (string= md5 (org-caldav-event-md5 event)))
+	 ((or (not (string= md5 (org-caldav-event-md5 event)))
+          (eq (org-caldav-event-status event) 'changed-in-org))
 	  ;; Event exists but has changed MD5, so mark it as changed.
 	  (org-caldav-debug-print 1
 	   (format "Org UID %s: Changed" uid))
@@ -1039,9 +1040,6 @@ If RESUME is non-nil, try to resume."
       (set (org-caldav-var-for-key (nth i calendar)) (nth (1+ i) calendar))
       (setq calkeys (append calkeys (list (nth i calendar)))
             calvalues (append calvalues (list (nth (1+ i) calendar)))))
-
-    (print calvalues)
-    (print calkeys)
     (cl-progv (mapcar 'org-caldav-var-for-key calkeys) calvalues
       (when (org-caldav-sync-do-org->cal)
 	(let ((files-for-sync (org-caldav-get-org-files-for-sync)))
@@ -2250,7 +2248,6 @@ which can be fed into `org-caldav-insert-org-event-or-todo'."
   "Convert event/todo from icalendar element E.
 If IS-TODO, it is a VTODO, else a VEVENT.  Returns an alist of properties
 which can be fed into `org-caldav-insert-org-event-or-todo'."
-  (print e)
   (let* ((dtstart-plist (org-caldav--event-date-plist e 'DTSTART zone-map))
          (eventdata-alist
           `((start-d . ,(plist-get dtstart-plist 'date))
