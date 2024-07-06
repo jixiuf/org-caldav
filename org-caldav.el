@@ -138,6 +138,10 @@ the default value is at the coarsest level of month-tree."
           (const week :tag "Week-Day-tree")
           (const day :tag "Month-Day-tree")))
 
+(defcustom org-caldav-readonly t
+  "bug around cal->org "
+  :type 'string)
+
 (defcustom org-caldav-sync-direction 'twoway
   "Which kind of sync should be done between Org and calendar.
 
@@ -819,13 +823,15 @@ The filename will be derived from the UID."
       (insert org-caldav-calendar-preamble event "END:VCALENDAR\n")
       (goto-char (point-min))
       (let* ((uid (org-caldav-get-uid)))
-	(org-caldav-debug-print 1 (format "Putting event UID %s." uid))
-	(org-caldav-debug-print 2 (format "Content of event UID %s: " uid)
-				(buffer-string))
-	(setq org-caldav-empty-calendar nil)
-	(org-caldav-save-resource
-	 (concat (org-caldav-events-url) uid org-caldav-uuid-extension)
-	 (encode-coding-string (buffer-string) 'utf-8))))))
+        (org-caldav-debug-print 1 (format "Putting event UID %s." uid))
+        (org-caldav-debug-print 2 (format "Content of event UID %s: " uid)
+                                (buffer-string))
+        (setq org-caldav-empty-calendar nil)
+        (if (not org-caldav-readonly)
+          (org-caldav-save-resource
+           (concat (org-caldav-events-url) uid org-caldav-uuid-extension)
+           (encode-coding-string (buffer-string) 'utf-8))
+          t)))))
 
 (defun org-caldav-url-dav-delete-file (url)
   "Delete URL.
@@ -839,9 +845,11 @@ be caught and a message displayed instead."
   (org-caldav-debug-print 1 (format "Deleting event UID %s." uid))
   (condition-case err
       (progn
-	(org-caldav-url-dav-delete-file
-	 (concat (org-caldav-events-url) uid org-caldav-uuid-extension))
-	t)
+        (if (not org-caldav-readonly)
+            (org-caldav-url-dav-delete-file
+             (concat (org-caldav-events-url) uid org-caldav-uuid-extension))
+          t)
+        t)
     (error
      (progn
        (message "Could not delete URI %s." uid)
@@ -1003,6 +1011,7 @@ Are you really sure? ")))
     (:inbox 'org-caldav-inbox)
     (:skip-conditions 'org-caldav-skip-conditions)
     (:sync-direction 'org-caldav-sync-direction)
+    (:readonly 'org-caldav-readonly)
     (:uuid-extension 'org-caldav-uuid-extension)
     (:get-event-by-report 'org-caldav-get-event-by-report)
     (t (intern
